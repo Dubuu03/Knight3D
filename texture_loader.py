@@ -4,7 +4,7 @@ import os
 
 def load_texture(base_path):
     """Load texture with .png/.jpg/.jpeg extension fallback"""
-    folder = "texture"
+    folder = "knight/texture"
     base_name = os.path.splitext(os.path.basename(base_path))[0]
     extensions = [".png", ".jpg", ".jpeg"]
 
