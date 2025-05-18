@@ -1,0 +1,6 @@
+# Ignore the models folder
+models/
+
+# You can also ignore temp files, logs, etc.
+*.log
+*.tmp
