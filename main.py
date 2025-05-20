@@ -81,7 +81,6 @@ def main():
         view = glm.lookAt(camera_pos, glm.vec3(0, 1.0, 0), glm.vec3(0, 1, 0))
         glUniformMatrix4fv(view_loc, 1, GL_FALSE, glm.value_ptr(view))
 
-
         light_position = glm.vec3(0.0, 10.0, 3.0)
         glUniform3fv(light_loc, 1, glm.value_ptr(light_position))
         glUniform3fv(view_pos_loc, 1, glm.value_ptr(camera_pos))
@@ -108,8 +107,14 @@ def main():
             obj.draw(shader_program, config.TEXTURE_UNITS)
 
         pygame.display.flip()
-        
-        #Cleanup
+
+    # === CLEANUP ===
+    for obj in objects:
+        obj.cleanup()
+
+    glUseProgram(0)
+    glDeleteProgram(shader_program)
+    glDisable(GL_DEPTH_TEST)
 
     pygame.quit()
 

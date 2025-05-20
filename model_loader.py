@@ -43,11 +43,23 @@ class SceneObject:
         glBindVertexArray(self.VAO)
         glDrawElements(GL_TRIANGLES, self.vertex_count, GL_UNSIGNED_INT, None)
         glBindVertexArray(0)
+        
+    def cleanup(self):
+        if self.VAO:
+            glDeleteVertexArrays(1, [self.VAO])
+        if self.VBO:
+            glDeleteBuffers(1, [self.VBO])
+        if self.EBO:
+            glDeleteBuffers(1, [self.EBO])
+        for tex_id in self.textures.values():
+            if tex_id:
+                glDeleteTextures([tex_id])
 
 def load_model_from_txt(folder_path, texture_loader):
     objects = []
     texture_types = ["BaseColor", "Normal", "Roughness", "Alpha", "Metallic", "Emissive"]
-
+    texture_cache = {}  
+    
     for filename in os.listdir(folder_path):
         if not filename.endswith(".txt"):
             continue
@@ -61,7 +73,9 @@ def load_model_from_txt(folder_path, texture_loader):
             tex_name = lines[i+1].split(":")[1].strip()
             if tex_name != "None":
                 tex_path = os.path.join("texture", tex_name)
-                textures[ttype] = texture_loader(tex_path)
+                if tex_path not in texture_cache:
+                    texture_cache[tex_path] = texture_loader(tex_path)
+                textures[ttype] = texture_cache[tex_path]
 
         v_start = lines.index("Vertices:\n") + 1
         i_start = lines.index("Indices:\n")
