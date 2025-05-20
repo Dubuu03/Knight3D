@@ -38,18 +38,19 @@ uniform vec3 emissiveColor;
 void main() {
     vec3 texColor = texture(texture_diffuse, TexCoord).rgb;
 
-    vec3 ambient = 0.3 * texColor;
+    // Boost ambient for room-style lighting
+    vec3 ambient = 0.9 * texColor;
 
+    // Reduce directional light contribution
     vec3 norm = normalize(Normal);
     vec3 lightDir = normalize(lightPos - FragPos);
     float diff = max(dot(norm, lightDir), 0.0);
-    vec3 diffuse = diff * texColor;
+    vec3 diffuse = 0.1 * diff * texColor;
 
-    vec3 viewDir = normalize(viewPos - FragPos);
-    vec3 reflectDir = reflect(-lightDir, norm);
-    float spec = pow(max(dot(viewDir, reflectDir), 0.0), 32);
-    vec3 specular = 0.5 * spec * vec3(1.0);
+    // Eliminate specular highlights
+    vec3 specular = vec3(0.0);
 
+    // Add emissive glow directly
     vec3 finalColor = ambient + diffuse + specular + emissiveColor;
     FragColor = vec4(finalColor, 1.0);
 }

@@ -1,1 +1,2 @@
-       light_position = glm.vec3(0.0, 5.0, 5.0)
+
+        model = glm.translate(model, glm.vec3(0, 0.0, 0))
