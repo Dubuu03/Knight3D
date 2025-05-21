@@ -1,0 +1,54 @@
+{
+    "bottom_armor_mat": {
+        "breathe": {
+            "amplitude": 0.02,
+            "frequency": 0.5,
+            "phase_shift": 0.2
+        }
+    },
+    "center_armor_mat": {
+        "breathe": {
+            "amplitude": 0.02,
+            "frequency": 0.5,
+            "phase_shift": 0.2
+        }
+    },
+    "cloak_mat": {
+        "primary_amplitude": 0.05,
+        "secondary_amplitude": 0.04,
+        "primary_frequency": 0.6,
+        "secondary_frequency": 0.8,
+        "phase_x": 0.0,
+        "phase_y": 1.0,
+        "phase_z": 2.0,
+        "flutter": 0.02,
+        "random_offset": 0.5
+    },
+    "details_mat": {},
+    "eye_plug_mat": {
+        "glow": {
+            "min": 0.3,
+            "max": 0.9,
+            "speed": 2.0
+        }
+    },
+    "roses_mat": {
+        "bob_amplitude": 0.05,
+        "bob_frequency": 0.5,
+        "bob_phase": 0.46913440491802805
+    },
+    "sword_mat": {
+        "glow": {
+            "min": 0.2,
+            "max": 0.8,
+            "speed": 1.5
+        }
+    },
+    "top_armor_mat": {
+        "breathe": {
+            "amplitude": 0.02,
+            "frequency": 0.5,
+            "phase_shift": 0.2
+        }
+    }
+}

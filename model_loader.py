@@ -1,13 +1,24 @@
-
 import os
 import numpy as np
 from OpenGL.GL import *
+import math
+import glm
+import ctypes
 
 class SceneObject:
     def __init__(self, name, vertices, indices, textures):
         self.name = name
         self.vertex_count = len(indices)
         self.textures = textures
+        
+        # Animation properties
+        self.animation_data = {
+            'time': 0,
+            'offset': glm.vec3(0.0, 0.0, 0.0),
+            'rotation': glm.vec3(0.0, 0.0, 0.0),
+            'scale': glm.vec3(1.0, 1.0, 1.0),
+            'custom': {}  # Store custom animation parameters
+        }
 
         self.VAO = glGenVertexArrays(1)
         self.VBO = glGenBuffers(1)
@@ -32,14 +43,39 @@ class SceneObject:
         glEnableVertexAttribArray(1)
 
         glBindVertexArray(0)
+        
+    def update_animation(self, dt):
+        self.animation_data['time'] += dt
+        
+    def get_model_matrix(self, base_model):
+        # Apply object-specific transformations on top of the base model matrix
+        model = glm.translate(base_model, self.animation_data['offset'])
+        
+        # Apply rotations if any
+        if any(self.animation_data['rotation']):
+            model = glm.rotate(model, self.animation_data['rotation'].x, glm.vec3(1, 0, 0))
+            model = glm.rotate(model, self.animation_data['rotation'].y, glm.vec3(0, 1, 0))
+            model = glm.rotate(model, self.animation_data['rotation'].z, glm.vec3(0, 0, 1))
+            
+        # Apply scaling if any
+        if any(v != 1.0 for v in [self.animation_data['scale'].x, self.animation_data['scale'].y, self.animation_data['scale'].z]):
+            model = glm.scale(model, self.animation_data['scale'])
+            
+        return model
 
-    def draw(self, shader_program, texture_units):
+    def draw(self, shader_program, texture_units, model_loc, model_matrix=None):
+        # Set textures
         for tex_type, tex_id in self.textures.items():
             unit = texture_units.get(tex_type, 0)
             glActiveTexture(GL_TEXTURE0 + unit)
             glBindTexture(GL_TEXTURE_2D, tex_id)
             glUniform1i(glGetUniformLocation(shader_program, tex_type), unit)
 
+        # Set model matrix (if provided)
+        if model_matrix is not None:
+            glUniformMatrix4fv(model_loc, 1, GL_FALSE, glm.value_ptr(model_matrix))
+            
+        # Draw the object
         glBindVertexArray(self.VAO)
         glDrawElements(GL_TRIANGLES, self.vertex_count, GL_UNSIGNED_INT, None)
         glBindVertexArray(0)
