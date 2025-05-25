@@ -3,23 +3,11 @@ from pygame.locals import *
 from OpenGL.GL import *
 import glm
 import math
-import random
-import os
-
 import config
 from loader.model_loader import load_model_from_txt
 from loader.texture_loader import load_texture
 from shader import create_shader_program
 from loader.animation_loader import initialize_animations, update_animations, load_camera_presets
-
-def draw_ground():
-    glBegin(GL_QUADS)
-    glColor3f(0.3, 0.3, 0.3)
-    glVertex3f(-50, 0, -50)
-    glVertex3f(50, 0, -50)
-    glVertex3f(50, 0, 50)
-    glVertex3f(-50, 0, 50)
-    glEnd()
 
 def main():
     pygame.init()
@@ -53,9 +41,8 @@ def main():
     rotating = False
     last_mouse_pos = pygame.mouse.get_pos()
 
-    # Load camera presets from JSON file
     camera_presets = load_camera_presets()
-    
+
     def get_presets_for_mode(mode):
         if mode == "knight":
             return [p for p in camera_presets if p.get("focus", "knight") == "knight"]
@@ -64,21 +51,32 @@ def main():
         else:
             return [p for p in camera_presets if p.get("focus", "both") == "both" or p.get("focus") not in ("knight", "demon")]
 
+    # Start with custom manual view (same as reset)
     view_mode = "both"
     current_presets = get_presets_for_mode(view_mode)
-    current_camera_preset = 0 if current_presets else -1
-    if current_presets:
-        preset = current_presets[current_camera_preset]
-        rot_x = preset["rot_x"]
-        rot_y = preset["rot_y"]
-        zoom = preset["zoom"]
-        focus_y = preset.get("focus_y", 1.0)
-    else:
-        rot_x, rot_y, zoom, focus_y = -3.6, 2.1, 10.0, 1.0
+    current_camera_preset = -1
+    rot_x = -3.6
+    rot_y = 2.1
+    zoom = 10.0
+    focus_y = 1.0
     idle_angle = 0.0
     elapsed_time = 0.0
     is_preset_view = True
-    print(f"Initial Camera: {view_mode} mode, preset: {preset['name'] if current_presets else 'Custom Start View (manual)'}")
+    print("Initial Camera: Custom Start View (manual)")
+
+    # Camera animation state
+    animating_camera = False
+    anim_time = 0.0
+    anim_duration = 0.5  # seconds for transition
+    cam_start = {"rot_x": rot_x, "rot_y": rot_y, "zoom": zoom, "focus_y": focus_y}
+    cam_target = {"rot_x": rot_x, "rot_y": rot_y, "zoom": zoom, "focus_y": focus_y}
+
+    def start_camera_animation(new_rot_x, new_rot_y, new_zoom, new_focus_y):
+        nonlocal animating_camera, anim_time, cam_start, cam_target
+        animating_camera = True
+        anim_time = 0.0
+        cam_start = {"rot_x": rot_x, "rot_y": rot_y, "zoom": zoom, "focus_y": focus_y}
+        cam_target = {"rot_x": new_rot_x, "rot_y": new_rot_y, "zoom": new_zoom, "focus_y": new_focus_y}
 
     running = True
     while running:
@@ -95,44 +93,50 @@ def main():
                     if current_presets:
                         current_camera_preset = (current_camera_preset + 1) % len(current_presets)
                         preset = current_presets[current_camera_preset]
-                        rot_x = preset["rot_x"]
-                        rot_y = preset["rot_y"]
-                        zoom = preset["zoom"]
-                        focus_y = preset.get("focus_y", 1.0)
+                        start_camera_animation(
+                            preset["rot_x"],
+                            preset["rot_y"],
+                            preset["zoom"],
+                            preset.get("focus_y", 1.0)
+                        )
                         idle_angle = 0.0
                         rotating = False
                         is_preset_view = True
                         print(f"Camera: {preset['name']}")
+
                 elif event.key == K_LEFT:
                     current_presets = get_presets_for_mode(view_mode)
                     if current_presets:
                         current_camera_preset = (current_camera_preset - 1) % len(current_presets)
                         preset = current_presets[current_camera_preset]
-                        rot_x = preset["rot_x"]
-                        rot_y = preset["rot_y"]
-                        zoom = preset["zoom"]
-                        focus_y = preset.get("focus_y", 1.0)
+                        start_camera_animation(
+                            preset["rot_x"],
+                            preset["rot_y"],
+                            preset["zoom"],
+                            preset.get("focus_y", 1.0)
+                        )
                         idle_angle = 0.0
                         rotating = False
                         is_preset_view = True
                         print(f"Camera: {preset['name']}")
+
                 elif event.key == K_SPACE:
                     is_preset_view = not is_preset_view
                     print("Free camera rotation enabled" if not is_preset_view else "Free camera rotation disabled – back to preset mode")
+
                 elif event.key == K_p:
                     print(f"Current Camera: rot_x={rot_x:.1f}, rot_y={rot_y:.1f}, zoom={zoom:.1f}, focus_y={focus_y:.1f}")
+
                 elif event.key == K_r:
                     view_mode = "both"
                     current_presets = get_presets_for_mode(view_mode)
                     current_camera_preset = -1
-                    rot_x = -3.6
-                    rot_y = 2.1
-                    zoom = 10.0
-                    focus_y = 1.0
+                    start_camera_animation(-3.6, 2.1, 10.0, 1.0)
                     idle_angle = 0.0
                     rotating = False
                     is_preset_view = True
                     print("Camera and view mode reset to custom start view")
+
                 elif event.key == K_TAB:
                     if view_mode == "both":
                         view_mode = "knight"
@@ -144,10 +148,12 @@ def main():
                     current_camera_preset = 0 if current_presets else -1
                     if current_presets:
                         preset = current_presets[current_camera_preset]
-                        rot_x = preset["rot_x"]
-                        rot_y = preset["rot_y"]
-                        zoom = preset["zoom"]
-                        focus_y = preset.get("focus_y", 1.0)
+                        start_camera_animation(
+                            preset["rot_x"],
+                            preset["rot_y"],
+                            preset["zoom"],
+                            preset.get("focus_y", 1.0)
+                        )
                         idle_angle = 0.0
                         rotating = False
                         is_preset_view = True
@@ -181,18 +187,26 @@ def main():
         update_animations(knight_objects, dt, elapsed_time)
         update_animations(demon_objects, dt, elapsed_time)
 
+        # Camera animation update
+        if animating_camera:
+            anim_time += dt
+            t = min(anim_time / anim_duration, 1.0)
+            t_smooth = t * t * (3 - 2 * t)  # smoothstep
+            rot_x = cam_start["rot_x"] + (cam_target["rot_x"] - cam_start["rot_x"]) * t_smooth
+            rot_y = cam_start["rot_y"] + (cam_target["rot_y"] - cam_start["rot_y"]) * t_smooth
+            zoom = cam_start["zoom"] + (cam_target["zoom"] - cam_start["zoom"]) * t_smooth
+            focus_y = cam_start["focus_y"] + (cam_target["focus_y"] - cam_start["focus_y"]) * t_smooth
+            if t >= 1.0:
+                animating_camera = False
+
         focus_y = current_presets[current_camera_preset]["focus_y"] if current_camera_preset >= 0 and current_presets else focus_y
         camera_pos = glm.vec3(0, 2.5, zoom)
 
-        # Use view_mode to determine what to focus on
-        if view_mode == "both":
-            view_target = glm.vec3(0, focus_y, 0)
-        elif view_mode == "knight":
-            view_target = glm.vec3(-1.5, focus_y, 0)
-        elif view_mode == "demon":
-            view_target = glm.vec3(1.5, focus_y, 0)
-        else:
-            view_target = glm.vec3(0, focus_y, 0)
+        view_target = glm.vec3(
+            -1.5 if view_mode == "knight" else 1.5 if view_mode == "demon" else 0,
+            focus_y,
+            0
+        )
 
         view = glm.lookAt(camera_pos, view_target, glm.vec3(0, 1, 0))
         glUniformMatrix4fv(view_loc, 1, GL_FALSE, glm.value_ptr(view))
@@ -204,15 +218,14 @@ def main():
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
         glUniform3fv(emissive_loc, 1, glm.value_ptr(glm.vec3(0.0)))
 
-        # Draw ground with fixed color, not affected by shader
-        glUseProgram(0)
-        glDisable(GL_TEXTURE_2D)
-        draw_ground()
-        glUseProgram(shader_program)
-
-        # Knight render
         knight_model = glm.mat4(1.0)
-        knight_model = glm.translate(knight_model, glm.vec3(-1.5, 0.0, 0))
+        apply_knight_offset = (
+            view_mode == "knight"
+            and current_camera_preset >= 0
+            and "full view" in current_presets[current_camera_preset]["name"].lower()
+        )
+        knight_offset_y = -0.3 if apply_knight_offset else 0.0
+        knight_model = glm.translate(knight_model, glm.vec3(-1.5, knight_offset_y, 0))
         knight_model = glm.rotate(knight_model, glm.radians(rot_x), glm.vec3(1, 0, 0))
         knight_model = glm.rotate(knight_model, glm.radians(90), glm.vec3(0, 1, 0))
         knight_model = glm.rotate(knight_model, glm.radians(rot_y + idle_angle), glm.vec3(0, 1, 0))
@@ -222,23 +235,11 @@ def main():
 
         for obj in knight_objects:
             name = getattr(obj, 'name', '').lower()
-            if 'eye' not in name and 'sword' not in name:
-                model = obj.get_model_matrix(knight_model)
-                glUniform3fv(emissive_loc, 1, glm.value_ptr(zero_color))
-                obj.draw(shader_program, config.TEXTURE_UNITS, model_loc, model)
+            model = obj.get_model_matrix(knight_model)
+            glow = glm.vec3(1.0, 0.0, 0.0) * glow_strength if 'eye' in name or 'sword' in name else zero_color
+            glUniform3fv(emissive_loc, 1, glm.value_ptr(glow))
+            obj.draw(shader_program, config.TEXTURE_UNITS, model_loc, model)
 
-        for obj in knight_objects:
-            name = getattr(obj, 'name', '').lower()
-            if 'eye' in name or 'sword' in name:
-                model = obj.get_model_matrix(knight_model)
-                if 'eye' in name:
-                    part_glow = glm.vec3(1.0, 0.0, 0.0) * glow_strength
-                elif 'sword' in name:
-                    part_glow = glm.vec3(1.0, 0.0, 0.0) * glow_strength
-                glUniform3fv(emissive_loc, 1, glm.value_ptr(part_glow))
-                obj.draw(shader_program, config.TEXTURE_UNITS, model_loc, model)
-
-        # Demon render
         demon_model = glm.mat4(1.0)
         demon_model = glm.translate(demon_model, glm.vec3(1.5, 0.0, 0))
         demon_model = glm.rotate(demon_model, glm.radians(rot_x), glm.vec3(1, 0, 0))
@@ -252,16 +253,13 @@ def main():
 
         pygame.display.flip()
 
-    for obj in knight_objects:
-        obj.cleanup()
-    for obj in demon_objects:
+    for obj in knight_objects + demon_objects:
         obj.cleanup()
 
     glUseProgram(0)
     glDeleteProgram(shader_program)
     glDisable(GL_DEPTH_TEST)
     pygame.quit()
-
 
 if __name__ == "__main__":
     main()
