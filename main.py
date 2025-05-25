@@ -158,12 +158,11 @@ def main():
 
         camera_pos = glm.vec3(0, 2.5, zoom)
         view = glm.lookAt(camera_pos, glm.vec3(0, 1.0, 0), glm.vec3(0, 1, 0))
-        glUniformMatrix4fv(view_loc, 1, GL_FALSE, glm.value_ptr(view))
-
+        glUniformMatrix4fv(view_loc, 1, GL_FALSE, glm.value_ptr(view))        
         light_position = glm.vec3(0.0, 10.0, 3.0)
         glUniform3fv(light_loc, 1, glm.value_ptr(light_position))
         glUniform3fv(view_pos_loc, 1, glm.value_ptr(camera_pos))
-
+        
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
         glUniform3fv(emissive_loc, 1, glm.value_ptr(glm.vec3(0.0)))
         draw_ground()
@@ -175,17 +174,30 @@ def main():
 
         glow_strength = (math.sin(pygame.time.get_ticks() * 0.002) + 1.0) * 0.5
         glow_color = glm.vec3(1.0, 0.2, 0.6) * glow_strength
+        zero_color = glm.vec3(0.0, 0.0, 0.0)
 
+        # First, draw all non-glowing objects
         for obj in objects:
             name = getattr(obj, 'name', '').lower()
-            model = obj.get_model_matrix(base_model)
-
+            if 'eye' not in name and 'sword' not in name:
+                model = obj.get_model_matrix(base_model)
+                glUniform3fv(emissive_loc, 1, glm.value_ptr(zero_color))
+                obj.draw(shader_program, config.TEXTURE_UNITS, model_loc, model)
+        
+        # Then draw all glowing objects
+        for obj in objects:
+            name = getattr(obj, 'name', '').lower()
             if 'eye' in name or 'sword' in name:
-                glUniform3fv(emissive_loc, 1, glm.value_ptr(glow_color))
-            else:
-                glUniform3fv(emissive_loc, 1, glm.value_ptr(glm.vec3(0.0)))
-
-            obj.draw(shader_program, config.TEXTURE_UNITS, model_loc, model)
+                model = obj.get_model_matrix(base_model)
+                
+                # Custom glow colors based on part
+                if 'eye' in name:
+                    part_glow = glm.vec3(1.0, 0.2, 0.6) * glow_strength  # Pink/purple glow for eyes
+                elif 'sword' in name:
+                    part_glow = glm.vec3(0.2, 0.8, 1.0) * glow_strength  # Blue glow for sword
+                
+                glUniform3fv(emissive_loc, 1, glm.value_ptr(part_glow))
+                obj.draw(shader_program, config.TEXTURE_UNITS, model_loc, model)
 
         pygame.display.flip()
 
