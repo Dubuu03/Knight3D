@@ -4,24 +4,13 @@ from OpenGL.GL import *
 import glm
 import math
 import random
-import json
 import os
 
 import config
-from model_loader import load_model_from_txt
-from texture_loader import load_texture
+from loader.model_loader import load_model_from_txt
+from loader.texture_loader import load_texture
 from shader import create_shader_program
-
-def load_animation_data():
-    """Load animation data from JSON file"""
-    try:
-        with open('animation_data.json', 'r') as f:
-            data = json.load(f)
-        print("Animation data loaded from animation_data.json")
-        return data
-    except Exception as e:
-        print(f"Error loading animation data: {e}")
-        return {}
+from loader.animation_loader import initialize_animations, update_animations, load_camera_presets
 
 def draw_ground():
     glBegin(GL_QUADS)
@@ -31,63 +20,6 @@ def draw_ground():
     glVertex3f(50, 0, 50)
     glVertex3f(-50, 0, 50)
     glEnd()
-
-def initialize_animations(objects):
-    animation_json = load_animation_data()
-    for obj in objects:
-        name = getattr(obj, 'name', '').lower()
-        obj.animation_data['offset'] = glm.vec3(0.0)
-        obj.animation_data['rotation'] = glm.vec3(0.0)
-        obj.animation_data['scale'] = glm.vec3(1.0)
-
-        if name in animation_json:
-            obj.animation_data['custom'] = animation_json[name]
-    return animation_json
-
-def update_animations(objects, dt, time):
-    for obj in objects:
-        obj.update_animation(dt)
-        name = getattr(obj, 'name', '').lower()
-
-        if 'rose' in name and 'custom' in obj.animation_data:
-            custom = obj.animation_data['custom']
-            bob_y = custom['bob_amplitude'] * math.sin(time * custom['bob_frequency'] + custom['bob_phase'])
-            obj.animation_data['offset'].y = bob_y
-            obj.animation_data['rotation'].y = math.sin(time * 0.5) * 0.02
-
-        elif 'cloak' in name and 'custom' in obj.animation_data:
-            custom = obj.animation_data['custom']
-            
-            # Time with slight random offset for natural difference
-            time_offset = time + custom.get('random_offset', 0)
-            
-            # Gentle vertical sway
-            wave_y = custom['primary_amplitude'] * math.sin(time_offset * custom['primary_frequency'])
-            
-            # Gentle lateral motion with phase shift
-            wave_x = custom['secondary_amplitude'] * math.sin(time_offset * custom['secondary_frequency'] + math.pi / 2)
-            
-            # Small Z depth flutter (trailing)
-            wave_z = (custom['secondary_amplitude'] * 0.5) * math.sin(time_offset * custom['secondary_frequency'] * 0.6)
-            
-            min_y = -0.03  # Adjust this to control how low it can go
-            clamped_y = max(wave_y * 0.3, min_y)
-            
-            # Apply soft translation offsets
-            obj.animation_data['offset'].x = wave_x * 0.2
-            obj.animation_data['offset'].y = clamped_y
-            obj.animation_data['offset'].z = wave_z * 0.1
-            
-            # Apply natural smooth rotations (like the cloak tilting back and forth)
-            obj.animation_data['rotation'].x = wave_y * 0.1
-            obj.animation_data['rotation'].y = wave_z * 0.08
-            obj.animation_data['rotation'].z = wave_x * 0.1
-
-            # Subtle breathing/puffing scaling (less intense)
-            flutter = custom['flutter'] * math.sin(time_offset * 1.5)
-            obj.animation_data['scale'].x = 1.0 + flutter * 0.2
-            obj.animation_data['scale'].y = 1.0 + flutter * 0.3
-            obj.animation_data['scale'].z = 1.0 - flutter * 0.1
 
 
 
@@ -124,7 +56,13 @@ def main():
     zoom = 6.0
     idle_angle = 0.0
     elapsed_time = 0.0
-
+    auto_rotate = True  # Start with auto-rotation enabled
+    is_preset_view = False  # Start with free rotation mode enabled
+    
+    # Load camera presets from JSON file
+    camera_presets = load_camera_presets()
+    current_camera_preset = 0
+    
     running = True
     while running:
         dt = clock.tick(60) / 1000.0
@@ -133,6 +71,44 @@ def main():
         for event in pygame.event.get():
             if event.type == QUIT or (event.type == KEYDOWN and event.key == K_ESCAPE):
                 running = False
+            elif event.type == KEYDOWN:
+                if event.key == K_RIGHT:
+                    # Switch to the next camera preset
+                    current_camera_preset = (current_camera_preset + 1) % len(camera_presets)
+                    preset = camera_presets[current_camera_preset]
+                    rot_x = preset["rot_x"]
+                    rot_y = preset["rot_y"]
+                    zoom = preset["zoom"]
+                    idle_angle = 0.0  # Reset idle angle when changing camera view
+                    rotating = False  # Stop rotation when changing camera view
+                    auto_rotate = False  # Turn off auto-rotation when switching camera
+                    # Store that this is a preset camera view
+                    is_preset_view = True
+                    print(f"Camera: {preset['name']}")
+                elif event.key == K_LEFT:
+                    # Switch to the previous camera preset
+                    current_camera_preset = (current_camera_preset - 1) % len(camera_presets)
+                    preset = camera_presets[current_camera_preset]
+                    rot_x = preset["rot_x"]
+                    rot_y = preset["rot_y"]
+                    zoom = preset["zoom"]
+                    idle_angle = 0.0  # Reset idle angle when changing camera view
+                    rotating = False  # Stop rotation when changing camera view
+                    auto_rotate = False  # Turn off auto-rotation when switching camera
+                    # Store that this is a preset camera view
+                    is_preset_view = True
+                    print(f"Camera: {preset['name']}")
+                elif event.key == K_SPACE:
+                    # Toggle auto-rotation with spacebar
+                    auto_rotate = not auto_rotate
+                    is_preset_view = False
+                    if auto_rotate:
+                        print("Auto-rotation enabled")
+                    else:
+                        print("Auto-rotation disabled")
+                elif event.key == K_p:
+                    # Print current camera position and rotation
+                    print(f"Current Camera: rot_x={rot_x:.1f}, rot_y={rot_y:.1f}, zoom={zoom:.1f}, focus_y={focus_y:.1f}")
             elif event.type == MOUSEBUTTONDOWN:
                 if event.button == 1:
                     rotating = True
@@ -152,13 +128,17 @@ def main():
                 last_mouse_pos = (x, y)
 
         if not rotating:
-            idle_angle += 15 * dt
+            if auto_rotate:
+                idle_angle += 15 * dt
 
         update_animations(objects, dt, elapsed_time)
-
+        
+        # Get focus height from current preset or default to 1.0
+        focus_y = camera_presets[current_camera_preset].get('focus_y', 1.0)
         camera_pos = glm.vec3(0, 2.5, zoom)
-        view = glm.lookAt(camera_pos, glm.vec3(0, 1.0, 0), glm.vec3(0, 1, 0))
-        glUniformMatrix4fv(view_loc, 1, GL_FALSE, glm.value_ptr(view))        
+        view = glm.lookAt(camera_pos, glm.vec3(0, focus_y, 0), glm.vec3(0, 1, 0))
+        glUniformMatrix4fv(view_loc, 1, GL_FALSE, glm.value_ptr(view))
+        
         light_position = glm.vec3(0.0, 10.0, 3.0)
         glUniform3fv(light_loc, 1, glm.value_ptr(light_position))
         glUniform3fv(view_pos_loc, 1, glm.value_ptr(camera_pos))
