@@ -1,37 +1,83 @@
 [
     {
-        "name": "Full View", 
-        "rot_x": 0.0, 
-        "rot_y": 0.0, 
-        "zoom": 6.0, 
-        "focus_y": 1.0
+        "name": "Full View Both",
+        "rot_x": -2.4,
+        "rot_y": -87.9,
+        "zoom": 8.5,
+        "focus_y": 1.0,
+        "focus": "both",
+        "description": "Shows the full scene with both the knight and demon characters."
     },
     {
-        "name": "Sword Focus", 
-        "rot_x": -14.4, 
-        "rot_y": -0.3, 
-        "zoom": 3.5, 
-        "focus_y": 1.0
+        "name": "Full View",
+        "rot_x": 0.0,
+        "rot_y": -75.3,
+        "zoom": 6.0,
+        "focus_y": 0.7,
+        "focus": "knight",
+        "description": "Knight full-body view from a slightly raised angle."
     },
     {
-        "name": "Head/Eyes Focus", 
-        "rot_x": 20.0, 
-        "rot_y": 0.0, 
-        "zoom": 3.0, 
-        "focus_y": 2.0
+        "name": "Sword Focus",
+        "rot_x": 2.7,
+        "rot_y": -50.7,
+        "zoom": 2.0,
+        "focus_y": 0.7,
+        "focus": "knight",
+        "description": "Close-up view of the knight's sword with dramatic angle."
     },
     {
-        "name": "Cloak Focus", 
-        "rot_x": 5.0, 
-        "rot_y": 135.0, 
-        "zoom": 4.0, 
-        "focus_y": 1.5
+        "name": "Head/Eyes Focus",
+        "rot_x": 1.1,
+        "rot_y": -54.6,
+        "zoom": 2.0,
+        "focus_y": 2.0,
+        "focus": "knight",
+        "description": "Highlights the knight’s face and glowing eyes."
     },
     {
-        "name": "Roses Focus", 
-        "rot_x": -15.0, 
-        "rot_y": 30.0, 
-        "zoom": 4.0, 
-        "focus_y": 0.7
+        "name": "Cloak Focus",
+        "rot_x": 0.2,
+        "rot_y": 75.9,
+        "zoom": 4.5,
+        "focus_y": 1.5,
+        "focus": "knight",
+        "description": "Back view of the knight focusing on the cloak’s movement."
+    },
+    {
+        "name": "Roses Focus",
+        "rot_x": 8.1,
+        "rot_y": -12.6,
+        "zoom": 3.0,
+        "focus_y": 0.7,
+        "focus": "knight",
+        "description": "Zoomed view on the roses decorating the knight."
+    },
+    {
+        "name": "Demon Full View",
+        "rot_x": 0.6,
+        "rot_y": 284.1,
+        "zoom": 5.5,
+        "focus_y": 1.0,
+        "focus": "demon",
+        "description": "Demon full-body view showing posture and stance."
+    },
+    {
+        "name": "Demon Head Focus",
+        "rot_x": 0.8,
+        "rot_y": -53.4,
+        "zoom": 2.0,
+        "focus_y": 2.0,
+        "focus": "demon",
+        "description": "Zoom-in on the demon’s head and facial details."
+    },
+    {
+        "name": "Demon Wings Focus",
+        "rot_x": -1.8,
+        "rot_y": -252.6,
+        "zoom": 5.0,
+        "focus_y": 1.0,
+        "focus": "demon",
+        "description": "View focusing on the demon's wings and back"
     }
 ]
