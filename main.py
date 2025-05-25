@@ -203,7 +203,12 @@ def main():
 
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
         glUniform3fv(emissive_loc, 1, glm.value_ptr(glm.vec3(0.0)))
+
+        # Draw ground with fixed color, not affected by shader
+        glUseProgram(0)
+        glDisable(GL_TEXTURE_2D)
         draw_ground()
+        glUseProgram(shader_program)
 
         # Knight render
         knight_model = glm.mat4(1.0)
