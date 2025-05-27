@@ -2,7 +2,7 @@ import glm
 
 # Window configuration
 DISPLAY_WIDTH = 1000
-DISPLAY_HEIGHT = 1000
+DISPLAY_HEIGHT = 850
 WINDOW_TITLE = "Knight Model Viewer"
 BACKGROUND_COLOR = (0.05, 0.05, 0.1, 1.0) 
 
