@@ -1,9 +1,9 @@
-import cv2
-import numpy as np
 from OpenGL.GL import *
+import pygame
+import numpy as np
 import ctypes
 
-# Shaders (same as before)
+# Background quad shaders
 bg_vertex_shader = """
 #version 330 core
 layout(location = 0) in vec2 position;
@@ -33,6 +33,11 @@ def create_bg_shader_program():
     glCompileShader(vs)
     glCompileShader(fs)
 
+    for shader, name in [(vs, "VERTEX"), (fs, "FRAGMENT")]:
+        success = glGetShaderiv(shader, GL_COMPILE_STATUS)
+        if not success:
+            print(f"{name} SHADER ERROR:", glGetShaderInfoLog(shader).decode())
+
     program = glCreateProgram()
     glAttachShader(program, vs)
     glAttachShader(program, fs)
@@ -42,21 +47,19 @@ def create_bg_shader_program():
     return program
 
 def create_bg_quad():
-    # Fullscreen quad stretched to fill window regardless of aspect
     quad_vertices = np.array([
-        # positions   # texCoords
-        -1.0,  1.0,   0.0, 1.0,
-        -1.0, -1.0,   0.0, 0.0,
-         1.0, -1.0,   1.0, 0.0,
-        -1.0,  1.0,   0.0, 1.0,
-         1.0, -1.0,   1.0, 0.0,
-         1.0,  1.0,   1.0, 1.0,
+        -1.0,  1.0,  0.0, 1.0,
+        -1.0, -1.0,  0.0, 0.0,
+         1.0, -1.0,  1.0, 0.0,
+        -1.0,  1.0,  0.0, 1.0,
+         1.0, -1.0,  1.0, 0.0,
+         1.0,  1.0,  1.0, 1.0,
     ], dtype=np.float32)
 
     VAO = glGenVertexArrays(1)
     VBO = glGenBuffers(1)
-
     glBindVertexArray(VAO)
+
     glBindBuffer(GL_ARRAY_BUFFER, VBO)
     glBufferData(GL_ARRAY_BUFFER, quad_vertices.nbytes, quad_vertices, GL_STATIC_DRAW)
 
@@ -68,23 +71,15 @@ def create_bg_quad():
     glBindVertexArray(0)
     return VAO, VBO
 
-def init_video_texture():
+def load_bg_texture(path):
+    surface = pygame.image.load(path).convert()
+    img_data = pygame.image.tostring(surface, "RGB", True)
+    width, height = surface.get_size()
+
     tex_id = glGenTextures(1)
     glBindTexture(GL_TEXTURE_2D, tex_id)
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, img_data)
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR)
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR)
     glBindTexture(GL_TEXTURE_2D, 0)
     return tex_id
-
-def update_video_texture(cap, texture_id):
-    ret, frame = cap.read()
-    if not ret:
-        cap.set(cv2.CAP_PROP_POS_FRAMES, 0)  # Loop
-        ret, frame = cap.read()
-    frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-    frame = cv2.flip(frame, 0)
-
-    height, width, _ = frame.shape
-    glBindTexture(GL_TEXTURE_2D, texture_id)
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, frame)
-    glBindTexture(GL_TEXTURE_2D, 0)

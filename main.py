@@ -8,8 +8,7 @@ from loader.model_loader import load_model_from_txt
 from loader.texture_loader import load_texture
 from shader import create_shader_program
 from loader.animation_loader import initialize_animations, update_animations, load_camera_presets
-from loader.background_loader import create_bg_shader_program, create_bg_quad, init_video_texture, update_video_texture
-import cv2
+from loader.background_loader import create_bg_shader_program, create_bg_quad, load_bg_texture
 
 def main():
     pygame.init()
@@ -21,14 +20,15 @@ def main():
     pygame.event.set_grab(False)
     glClearColor(*config.BACKGROUND_COLOR)
     glEnable(GL_DEPTH_TEST)
-
+    
     shader_program = create_shader_program()
     glUseProgram(shader_program)
-    cap = cv2.VideoCapture("mata.mp4")
-    video_texture = init_video_texture()
+
+    background_texture = load_bg_texture("pic2.jpg")
     bg_shader = create_bg_shader_program()
     bg_VAO, bg_VBO = create_bg_quad()
-
+    
+    
     knight_objects = load_model_from_txt("knight/parts", load_texture)
     demon_objects = load_model_from_txt("demon/parts", load_texture)
     initialize_animations(knight_objects)
@@ -84,12 +84,13 @@ def main():
         anim_time = 0.0
         cam_start = {"rot_x": rot_x, "rot_y": rot_y, "zoom": zoom, "focus_y": focus_y}
         cam_target = {"rot_x": new_rot_x, "rot_y": new_rot_y, "zoom": new_zoom, "focus_y": new_focus_y}
-    
-    # add music
-    pygame.mixer.music.load("mata.mp3")
-    pygame.mixer.music.play(-1)
-    
+
     running = True
+    
+    #add music
+    pygame.mixer.music.load("mata.mp3")
+    pygame.mixer.music.play(-1, fade_ms=2000)     
+    pygame.mixer.music.set_volume(0.5)
     while running:
         dt = clock.tick(60) / 1000.0
         elapsed_time += dt
@@ -225,28 +226,21 @@ def main():
         light_position = glm.vec3(0.0, 10.0, 3.0)
         glUniform3fv(light_loc, 1, glm.value_ptr(light_position))
         glUniform3fv(view_pos_loc, 1, glm.value_ptr(camera_pos))
-        
-        # 🎥 Draw video background first
+
+        # Render background image first
         glClear(GL_COLOR_BUFFER_BIT)
         glDisable(GL_DEPTH_TEST)
-
-        update_video_texture(cap, video_texture)
-
         glUseProgram(bg_shader)
         glBindVertexArray(bg_VAO)
         glActiveTexture(GL_TEXTURE0)
-        glBindTexture(GL_TEXTURE_2D, video_texture)
+        glBindTexture(GL_TEXTURE_2D, background_texture)
         bg_tex_loc = glGetUniformLocation(bg_shader, "backgroundTexture")
         glUniform1i(bg_tex_loc, 0)
         glDrawArrays(GL_TRIANGLES, 0, 6)
-        glBindVertexArray(0)
-
-        # ✅ Switch back to 3D shader for the scene
         glEnable(GL_DEPTH_TEST)
         glClear(GL_DEPTH_BUFFER_BIT)
         glUseProgram(shader_program)
 
-        # ✅ Now safe to set uniforms like emissive
         glUniform3fv(emissive_loc, 1, glm.value_ptr(glm.vec3(0.0)))
 
         knight_model = glm.mat4(1.0)
